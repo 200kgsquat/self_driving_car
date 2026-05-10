@@ -1,0 +1,2 @@
+car1: (54, 98) h>w=True
+car19: (98, 54) h>w=False
