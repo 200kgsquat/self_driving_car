@@ -18,7 +18,10 @@ class Car:
         show_radars=False,
         show_score=False
     ):
-        sprite = pg.image.load("autopilot/sprites/car0.png")
+        # Load car sprite using absolute path relative to this file
+        import os
+        sprite_path = os.path.join(os.path.dirname(__file__), "sprites", "car0.png")
+        sprite = pg.image.load(sprite_path)
         rect = sprite.get_rect()
 
         w, h = round(rect.width * scale), round(rect.height * scale)
@@ -52,6 +55,25 @@ class Car:
 
         # state
         self.is_alive = True
+        # store debug flags for later resets
+        self._show_collision = show_collision
+        self._show_radars = show_radars
+        self._show_score = show_score
+
+    def reset(self, position, angle):
+        """Reset the car to a new start position and angle.
+        This is used during training to re‑initialize a car for a new genome.
+        """
+        self.position = pg.Vector2(position)
+        self.angle = angle % 360
+        self.velocity = pg.Vector2(0, 0)
+        self.acceleration = 0.0
+        self.steering = 0.0
+        self.score = 0.0
+        self.movement_score = 0.0
+        self.distance_score = 0.0
+        self.is_alive = True
+        # Reset any other dynamic state if needed
         self.parked = False
 
         # sensors
@@ -67,10 +89,10 @@ class Car:
         self.movement_score = 0.0
         self.score = 0.0
 
-        # debug
-        self.show_collision_points = show_collision
-        self.show_radars = show_radars
-        self.show_score = show_score
+        # debug flags restored from stored defaults
+        self.show_collision_points = self._show_collision
+        self.show_radars = self._show_radars
+        self.show_score = self._show_score
 
     # ---------------- PHYSICS ----------------
 
@@ -180,6 +202,12 @@ class Car:
     # ---------------- RADARS ----------------
 
     def _compute_radars(self, screen, surface, pedestrians=None):
+        """Compute radar distances safely.
+
+        Any unexpected error (e.g., out‑of‑bounds access) is caught so that a
+        single faulty genome does not crash the whole simulation. In case of
+        an exception the radar is set to the maximum range.
+        """
         angles = [radians(90 - self.angle - 45 * i) for i in range(8)]
 
         self.radars = []
@@ -188,15 +216,17 @@ class Car:
         for i, ang in enumerate(angles):
             dist = self.max_radar_len
             x, y = 0, 0
-
-            for d in range(1, self.max_radar_len):
-                x = int(self.position.x + d * cos(ang))
-                y = int(self.position.y + d * sin(ang))
-
-                if not self._safe_position((x, y), screen, surface):
-                    dist = d
-                    break
-
+            try:
+                for d in range(1, self.max_radar_len):
+                    x = int(self.position.x + d * cos(ang))
+                    y = int(self.position.y + d * sin(ang))
+                    if not self._safe_position((x, y), screen, surface):
+                        dist = d
+                        break
+            except Exception as e:
+                # Log the error for diagnostics and fall back to max distance
+                print(f"[RADAR ERROR] {e} – using max range for radar {i}")
+                dist = self.max_radar_len
             self.radars.append((x, y))
             self.radars_data[i] = dist / self.max_radar_len
 
@@ -254,7 +284,12 @@ class Car:
             self._stop()
             self.parked = True
 
+        # Compute final score
         self.score = self.distance_score + self.movement_score
+
+        # Guard against NaN / Inf – replace with a large negative penalty
+        if np.isnan(self.score) or np.isinf(self.score):
+            self.score = -100.0
 
     def _navigate_target(self, surface):
         if not hasattr(surface, "target_position") or surface.target_position is None:

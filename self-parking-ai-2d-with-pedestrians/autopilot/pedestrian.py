@@ -15,7 +15,9 @@ class Pedestrian:
     ROAD_BOTTOM = 628
 
     def __init__(self, position=(0, 0), scale=1):
-        sprite = pg.image.load(f"autopilot/sprites/pedestrian.png")
+        import os
+        sprite_path = os.path.join(os.path.dirname(__file__), "sprites", "pedestrian.png")
+        sprite = pg.image.load(sprite_path)
         rect = sprite.get_rect()
         w, h = round(rect.width * scale), round(rect.height * scale)
         self.sprite = pg.transform.scale(sprite, (w, h))

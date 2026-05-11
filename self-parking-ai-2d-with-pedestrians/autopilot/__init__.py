@@ -1,3 +1,4 @@
-from autopilot.simulation import Simulation
+# Export the Simulation class from the local package
+from .simulation import Simulation
 
-__all__ = "Simulation"
+__all__ = ["Simulation"]

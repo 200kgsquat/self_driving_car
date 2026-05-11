@@ -1,0 +1,108 @@
+****** Running generation 1 ******
+Population's average fitness: 1215.45561 stdev: N/A
+Best fitness: 1215.45561 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of N/A members in N/A species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 2 ******
+Population's average fitness: 520.49998 stdev: N/A
+Best fitness: 520.49998 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of N/A members in N/A species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 1 ******
+Population's average fitness: 510.24048 stdev: 550.17755
+Best fitness: 1418.79000 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 1 ******
+Population's average fitness: 68.53865 stdev: 143.56169
+Best fitness: 531.31243 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 2 ******
+Population's average fitness: 215.60134 stdev: 392.50393
+Best fitness: 1218.22427 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 3 ******
+Population's average fitness: 623.02329 stdev: 555.16225
+Best fitness: 1327.18130 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 4 ******
+Population's average fitness: 31.24414 stdev: 81.87374
+Best fitness: 495.99000 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 5 ******
+Population's average fitness: 157.70125 stdev: 249.83965
+Best fitness: 1243.71807 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 1 ******
+Population's average fitness: -47.82713 stdev: 19.31293
+Best fitness: 332.83993 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 2 ******
+Population's average fitness: 43.75104 stdev: 106.35724
+Best fitness: 194.00968 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 3 ******
+Population's average fitness: -34.91666 stdev: 94.61716
+Best fitness: 609.77189 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
+****** Running generation 4 ******
+Population's average fitness: -35.94446 stdev: 87.78314
+Best fitness: 518.89633 - size: (N/A) - species N/A - id N/A
+Average adjusted fitness: N/A
+Mean genetic distance N/A, standard deviation N/A
+Population of 80 members in 0 species (after reproduction):
+   ID   age  size   fitness   adj fit  stag
+   ====  ===  ====  =========  =======  ====
+   ... (details omitted)
