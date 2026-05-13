@@ -72,8 +72,10 @@ class Simulation:
         self.pedestrian_count = getattr(self.parking, "PEDESTRIAN_COUNT", pedestrian_count)
 
         self.best_score = -float("inf")
-        # Ensure a target is selected right from the start
-        self.parking.pick_random_target()
+        # Ensure a target is selected right from the start, but respect any
+        # pre‑determined default target (e.g., spot index 5 set in SmallParking).
+        if self.parking.target_idx is None:
+            self.parking.pick_random_target()
 
         # Increase episode length to give the agent more steps to reach the target
         # (previously 10 seconds, now up to 100 seconds)
@@ -391,7 +393,9 @@ class Simulation:
         self._init_new_generation(genomes, config)
 
         # Ensure a target parking spot is selected for each generation
-        self.parking.pick_random_target()
+        # Preserve the pre‑determined default target if it exists.
+        if self.parking.target_idx is None:
+            self.parking.pick_random_target()
 
         while True:
 
@@ -479,20 +483,10 @@ class Simulation:
                     self.parking.pedestrians,
                 )
 
-                # Handle death penalties and fitness assignment
-                if not car.is_alive and self.time < 20:
-                    # Early death penalty
-                    gen[1].fitness = -50.0
-                    with open(self._log_file, "a", encoding="utf-8") as f:
-                        f.write(f"[EARLY DEATH] Generation {self.generation}, Genome {gen[0]} died at step {self.time}. Position={car.position}, Angle={car.angle}\n")
-                elif not car.is_alive:
-                    # Late death penalty: subtract 200 points but not below -50
-                    gen[1].fitness = max(car.score - 200, -50.0)
-                    with open(self._log_file, "a", encoding="utf-8") as f:
-                        f.write(f"[LATE DEATH] Generation {self.generation}, Genome {gen[0]} died at step {self.time}. Position={car.position}, Angle={car.angle}\n")
-                else:
-                    self.best_score = max(self.best_score, car.score)
-                    gen[1].fitness = car.score
+                # Simple fitness assignment: always use the car's score, regardless of alive state
+                # (no early‑death penalty, no additional logging)
+                self.best_score = max(self.best_score, car.score)
+                gen[1].fitness = car.score
                 # Reset car score for next genome
                 car.score = 0
 

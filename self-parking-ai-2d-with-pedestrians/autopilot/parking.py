@@ -118,6 +118,22 @@ class SmallParking(BaseParking):
         self._init_parking()
         self.randomize()
 
+        # -----------------------------------------------------------------
+        # Configure a single pre‑determined empty parking spot to serve as the
+        # default target. The user now wants only **one** reserved spot (instead
+        # of the previous four side‑based empty spots plus an extra one).
+        # We therefore replace the side‑based empty spots with a single index.
+        # -----------------------------------------------------------------
+        default_idx = 5  # The spot the user wants as the sole target.
+        # Override the list of empty side indices with only the default.
+        self.empty_side_idxs = [default_idx]
+        # Re‑compute the occupied (parked) indices accordingly.
+        self.parked_idxs = [i for i in self.spaces if i not in self.empty_side_idxs]
+        # Set the target to this index and compute its centre position.
+        self.target_idx = default_idx
+        x, y, w, h = self.spaces[default_idx]
+        self.target_position = (x + w / 2, y + h / 2)
+
     # -----------------------------------------------------------------
     # Helper methods to generate a valid random start position and angle.
     # -----------------------------------------------------------------
@@ -167,6 +183,23 @@ class SmallParking(BaseParking):
             sprite = pg.image.load(sprite_path)
             self.cars_sprites.append(pg.transform.rotate(sprite, angle))
 
+        # -----------------------------------------------------------------
+        # Determine a single fixed parking spot for each side of the map.
+        # -----------------------------------------------------------------
+        # We iterate over all spot indices in order and pick the first spot
+        # that belongs to each side (left, right, top, bottom). The side is
+        # inferred from the rectangle geometry using the helper method
+        # ``_side_of_idx`` defined later in the class.
+        self.side_spot_idxs: dict = {}
+        for idx in self.spaces:
+            side = self._side_of_idx(idx)
+            if side not in self.side_spot_idxs:
+                self.side_spot_idxs[side] = idx
+            if len(self.side_spot_idxs) == 4:
+                break
+        # Store the four fixed empty indices for quick access.
+        self.empty_side_idxs = list(self.side_spot_idxs.values())
+
     # -----------------------------------------------------------------
     # Helper to determine if a position is blocked by map boundaries or a pedestrian.
     # -----------------------------------------------------------------
@@ -201,12 +234,57 @@ class SmallParking(BaseParking):
                 return True
         return False
 
+    def _side_of_idx(self, idx):
+        """Return the side of the map ('left', 'right', 'top', 'bottom') for a given parking spot index.
+
+        The parking layout is built in ``_init_parking`` where the order of spots is:
+        1. Bottom side (y ≈ 659)
+        2. Top side (y ≈ 23)
+        3. Right side (x ≈ 1199)
+        4. Left side (x ≈ 24)
+
+        We infer the side from the rectangle geometry: horizontal spots (width > height)
+        are on the left/right edges, vertical spots (height > width) are on the top/bottom.
+        The exact edge is distinguished by the x or y coordinate.
+        """
+        rect = self.spaces[idx]
+        x, y, w, h = rect
+        if w > h:  # left or right side (wide rectangle)
+            # Left side rectangles are positioned near the left map border (small x)
+            return "left" if x < self.MAP_WIDTH // 2 else "right"
+        else:  # top or bottom side (tall rectangle)
+            return "top" if y < self.MAP_HEIGHT // 2 else "bottom"
+
     def randomize(self):
+        """Randomize the parking layout while keeping the four fixed empty spots.
+
+        The fixed empty spots are determined once in ``_init_parking`` and stored in
+        ``self.empty_side_idxs``. Here we simply shuffle the full list of indices and
+        mark every index *except* those fixed ones as occupied (parked). This guarantees
+        that the same four spots – one per side – are always available for target
+        selection throughout the entire simulation.
+        """
         idxs = list(self.spaces.keys())
         shuffle(idxs)
 
-        # Leave one random spot empty so the car has a target
-        self.parked_idxs = idxs[:-1]
+        # Ensure we have the fixed empty indices; if not (unlikely), fall back to the
+        # previous per‑side selection logic to avoid crashes.
+        # If the list of empty indices is not defined or empty, fall back to the
+        # original behaviour of selecting one empty spot per side. This allows
+        # callers (like __init__) to pre‑define a custom set of empty spots –
+        # for example a single reserved spot – without it being overwritten.
+        if not hasattr(self, "empty_side_idxs") or not self.empty_side_idxs:
+            empty_per_side = {}
+            for idx in idxs:
+                side = self._side_of_idx(idx)
+                if side not in empty_per_side:
+                    empty_per_side[side] = idx
+                if len(empty_per_side) == 4:
+                    break
+            self.empty_side_idxs = list(empty_per_side.values())
+
+        # All indices except the fixed empty ones are considered occupied.
+        self.parked_idxs = [i for i in idxs if i not in self.empty_side_idxs]
         self.target_idx = None
         self.target_position = None
 
@@ -244,12 +322,16 @@ class SmallParking(BaseParking):
                 break
 
     def pick_random_target(self):
-        """Select a random unoccupied parking spot as the target"""
-        available = [idx for idx in self.spaces.keys() if idx not in self.parked_idxs]
-        if not available:
+        """Select a random side and use its pre‑selected empty spot as the target.
+
+        ``self.empty_side_idxs`` holds exactly four indices – one per side – that were left empty
+        during ``randomize``. We randomly choose one of these sides, set it as the target, and keep the
+        remaining three empty spots untouched (they remain available for future episodes).
+        """
+        if not hasattr(self, "empty_side_idxs") or not self.empty_side_idxs:
             return False
         import random
-        idx = random.choice(available)
+        idx = random.choice(self.empty_side_idxs)
         self.target_idx = idx
         x, y, w, h = self.spaces[idx]
         self.target_position = (x + w / 2, y + h / 2)

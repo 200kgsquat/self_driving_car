@@ -59,6 +59,10 @@ class Car:
         self._show_collision = show_collision
         self._show_radars = show_radars
         self._show_score = show_score
+        # Counter for consecutive stationary steps (used for progressive penalty)
+        self.stationary_counter = 0
+        # Flag to ensure parking bonus is applied only once per episode
+        self.parked_bonus_given = False
 
     def reset(self, position, angle):
         """Reset the car to a new start position and angle.
@@ -75,6 +79,8 @@ class Car:
         self.is_alive = True
         # Reset any other dynamic state if needed
         self.parked = False
+        # Reset parking bonus flag for a new episode
+        self.parked_bonus_given = False
 
         # sensors
         self.radars_data = np.zeros(8, np.float32)
@@ -179,24 +185,38 @@ class Car:
         self.collision_points = np.array(res, dtype=np.int32)
 
     def _check_collision(self, screen, surface, pedestrians=None):
+        """Detect collisions with map boundaries and pedestrians.
+
+        The original implementation stopped the car on any wall collision and
+        also stopped the car when hitting a pedestrian. This caused stationary
+        cars (velocity ≈ 0) to be marked as dead even when they were merely
+        touching a wall or a pedestrian, which interfered with learning.
+
+        Updated logic:
+        * Wall collisions only terminate the car if it is moving (speed > 0.1).
+          Otherwise the car is allowed to remain alive – the situation is
+          treated as a harmless contact.
+        * Pedestrian collisions now only apply a penalty to ``movement_score``
+          without stopping the car, encouraging the network to avoid them but
+          not penalising the entire episode.
+        """
         # Check collision with walls/obstacles
         for p in self.collision_points:
             if not self._safe_position(p, screen, surface):
                 self.movement_score -= 10
-                self._stop()
+                # Stop only if the car is actually moving
+                if abs(self.velocity.x) > 0.1:
+                    self._stop()
                 return
 
-        # NOTE: Pedestrians are not removed on collision.
-        # We apply a small penalty so the network learns to avoid them,
-        # but they stay alive so the simulation can continue.
+        # Pedestrian collisions – apply penalty but do not stop the car
         if pedestrians:
             for ped in pedestrians:
                 if ped.is_alive:
                     for p in self.collision_points:
                         if ped.rect.collidepoint(p):
-                            # small penalty for hitting a pedestrian
                             self.movement_score -= 5
-                            self._stop()
+                            # Do NOT stop the car here; allow continued learning
                             return
 
     # ---------------- RADARS ----------------
@@ -264,23 +284,60 @@ class Car:
 
         self.target_distance = max(0, 1 - dist / (self.start_distance + 1e-6))
 
+    def update_movement_penalty(self):
+        """Adjust movement score without penalising stationary behaviour.
+
+        The original implementation applied a small base penalty (‑0.3) and a
+        progressive penalty that grew with the number of consecutive frames the
+        car remained effectively still. This discouraged the "stand‑still"
+        strategy but also introduced a bias that could dominate the overall
+        reward signal, making it harder for the NEAT algorithm to discover
+        useful behaviours.
+
+        The updated logic **removes** any negative reward for being stationary.
+        Instead, we only grant a positive bonus when the car is moving and keep
+        the ``stationary_counter`` for potential future use (e.g., analytics) but
+        do not affect the score.
+        """
+        speed = abs(self.velocity.x) + abs(self.velocity.y)
+        if speed < 0.5:
+            # Car is effectively stationary – no penalty applied.
+            self.stationary_counter += 1
+            # Optionally, a very small neutral reward could be added here if
+            # desired, but we keep the score unchanged to fully remove the
+            # standing penalty.
+        else:
+            # Reset counter when moving and give a movement bonus.
+            self.stationary_counter = 0
+            self.movement_score += 0.8
+
     def _compute_score(self):
-        # Survival reward – larger bonus each tick the car stays alive
-        survival_reward = 1.0
-        self.movement_score += survival_reward
+        """Calculate the car's score for the current tick.
 
-        # Small reward for forward motion to encourage movement
-        forward_reward = 0.1 * max(0, self.velocity.x)
-        self.movement_score -= 0.01 if abs(self.velocity.x) < 1 else 0.005
-        self.movement_score += forward_reward
+        Adjusted to discourage the "stand‑still" strategy and provide stronger
+        incentives for moving towards the target.
+        """
+        # 1. Apply stationary penalty / movement reward
+        self.update_movement_penalty()
 
-        # Increase distance reward scaling to give stronger positive signal
-        self.distance_score = 300 * self.target_distance
+        # 3. Reward for forward motion (encourage higher speed)
+        # forward_reward = 0.5 * max(0, self.velocity.x)
+        # self.movement_score += forward_reward
 
-        # Bonus when the car reaches the target (distance_score > 99)
-        if self.distance_score > 99:
+        # 4. Small reward for active steering (encourage exploration)
+        if abs(self.steering) > 0.1:
+            self.movement_score += 0.05
+
+        # 5. Distance reward – stronger scaling
+        self.distance_score = 500 * self.target_distance
+
+        # Bonus when the car reaches the target.
+        # Use a stricter condition based on target progress and ensure the bonus
+        # is granted only once per episode.
+        if not self.parked_bonus_given and self.target_distance > 0.95:
             self.distance_score = 1000
-            self.movement_score += 200   # extra bonus for successful parking
+            self.movement_score += 300   # larger bonus for successful parking
+            self.parked_bonus_given = True
             self._stop()
             self.parked = True
 
